@@ -1,34 +1,129 @@
+'use strict';
+
 const Fastify = require('fastify');
 const { createClient } = require('@supabase/supabase-js');
-require('dotenv').config();
 
-// Initialize Fastify
-const app = Fastify({ logger: true });
+// Initialize Supabase
+const supabase = createClient(
+    process.env.SUPABASE_URL,
+    process.env.SUPABASE_ANON_KEY
+);
 
-// Initialize Supabase Client
-const supabaseUrl = process.env.SUPABASE_URL;
-const supabaseKey = process.env.SUPABASE_ANON_KEY;
-const supabase = createClient(supabaseUrl, supabaseKey);
+// Create Fastify instance
+const fastify = Fastify({ logger: false });
 
-// Define Routes
-app.get('/', async (request, reply) => {
-    return { status: 'success', message: 'Fastify backend is running on Vercel!' };
+// CORS
+fastify.addHook('onRequest', async (request, reply) => {
+    reply.header('Access-Control-Allow-Origin', '*');
+    reply.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+    reply.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    if (request.method === 'OPTIONS') {
+        reply.code(204).send();
+    }
 });
 
-app.get('/users', async (request, reply) => {
-    // Fetch data from your Supabase 'users' table
-    const { data, error } = await supabase.from('users').select('*');
+// ─── Health Check ───────────────────────────────────────────────────────────
+fastify.get('/', async (request, reply) => {
+    return { status: 'ok', message: 'Subhedar Salary Generator API' };
+});
+
+fastify.get('/api/health', async (request, reply) => {
+    return { status: 'ok' };
+});
+
+// ─── GET all employees ───────────────────────────────────────────────────────
+fastify.get('/api/employees', async (request, reply) => {
+    const { data, error } = await supabase
+        .from('employees')
+        .select('*')
+        .order('created_at', { ascending: false });
 
     if (error) {
-        return reply.status(500).send({ error: error.message });
+        return reply.code(500).send({ success: false, error: error.message });
     }
-
-    return { data };
+    return { success: true, data };
 });
 
-// Export a Vercel Serverless Function wrapper
+// ─── GET single employee ─────────────────────────────────────────────────────
+fastify.get('/api/employees/:id', async (request, reply) => {
+    const { id } = request.params;
+    const { data, error } = await supabase
+        .from('employees')
+        .select('*')
+        .eq('employee_id', id)
+        .single();
+
+    if (error) {
+        return reply.code(404).send({ success: false, error: 'Employee not found' });
+    }
+    return { success: true, data };
+});
+
+// ─── POST create employee ────────────────────────────────────────────────────
+fastify.post('/api/employees', async (request, reply) => {
+    const { employee_name, phone_number, joining_date, salary } = request.body;
+
+    if (!employee_name || !joining_date || salary === undefined) {
+        return reply.code(400).send({
+            success: false,
+            error: 'employee_name, joining_date, and salary are required',
+        });
+    }
+
+    const { data, error } = await supabase
+        .from('employees')
+        .insert([{ employee_name, phone_number, joining_date, salary }])
+        .select()
+        .single();
+
+    if (error) {
+        return reply.code(500).send({ success: false, error: error.message });
+    }
+    return reply.code(201).send({ success: true, data });
+});
+
+// ─── PUT update employee ─────────────────────────────────────────────────────
+fastify.put('/api/employees/:id', async (request, reply) => {
+    const { id } = request.params;
+    const { employee_name, phone_number, joining_date, salary } = request.body;
+
+    const updates = {};
+    if (employee_name !== undefined) updates.employee_name = employee_name;
+    if (phone_number !== undefined) updates.phone_number = phone_number;
+    if (joining_date !== undefined) updates.joining_date = joining_date;
+    if (salary !== undefined) updates.salary = salary;
+    updates.updated_at = new Date().toISOString();
+
+    const { data, error } = await supabase
+        .from('employees')
+        .update(updates)
+        .eq('employee_id', id)
+        .select()
+        .single();
+
+    if (error) {
+        return reply.code(500).send({ success: false, error: error.message });
+    }
+    return { success: true, data };
+});
+
+// ─── DELETE employee ─────────────────────────────────────────────────────────
+fastify.delete('/api/employees/:id', async (request, reply) => {
+    const { id } = request.params;
+
+    const { error } = await supabase
+        .from('employees')
+        .delete()
+        .eq('employee_id', id);
+
+    if (error) {
+        return reply.code(500).send({ success: false, error: error.message });
+    }
+    return { success: true, message: 'Employee deleted successfully' };
+});
+
+// ─── Vercel serverless export ────────────────────────────────────────────────
 module.exports = async (req, res) => {
-    await app.ready();
-    // Pass the serverless request and response to Fastify's internal server
-    app.server.emit('request', req, res);
+    await fastify.ready();
+    fastify.server.emit('request', req, res);
 };
