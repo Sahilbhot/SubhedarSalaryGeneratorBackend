@@ -1,10 +1,15 @@
 {
   "name": "subhedar-salary-generator-backend",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "description": "Backend API for Hotel Subhedar (Fastify + Supabase, Vercel serverless).",
+  "main": "api/index.js",
   "scripts": {
     "start": "node local.js",
+    "dev": "node --watch local.js",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
@@ -17,6 +22,11 @@
     "fastify": "^5.8.5"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "eslint": "^10.6.0",
+    "eslint-config-prettier": "^10.1.8",
+    "globals": "^17.7.0",
+    "prettier": "^3.9.4",
     "vercel": "^54.11.1"
   }
 }
