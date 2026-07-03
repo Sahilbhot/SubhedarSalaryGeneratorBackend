@@ -123,7 +123,11 @@ fastify.delete('/api/employees/:id', async (request, reply) => {
 });
 
 // ─── Vercel serverless export ────────────────────────────────────────────────
-module.exports = async (req, res) => {
+const handler = async (req, res) => {
     await fastify.ready();
     fastify.server.emit('request', req, res);
 };
+
+module.exports = handler;
+// Expose the Fastify instance for local standalone runs (see local.js)
+module.exports.fastify = fastify;
