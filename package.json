@@ -6,6 +6,7 @@
   "scripts": {
     "start": "node local.js",
     "dev": "node --watch local.js",
+    "seed:admin": "node scripts/create-admin.js",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "format": "prettier --write .",
@@ -18,8 +19,10 @@
   "type": "commonjs",
   "dependencies": {
     "@supabase/supabase-js": "^2.108.1",
+    "bcryptjs": "^3.0.3",
     "dotenv": "^17.4.2",
-    "fastify": "^5.8.5"
+    "fastify": "^5.8.5",
+    "jsonwebtoken": "^9.0.3"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
