@@ -6,11 +6,25 @@ const supabase = require('../config/supabase');
 
 const TABLE = 'menu_items';
 
-// Ordered so the public landing page renders sections/items in menu order.
-function findAll() {
-  return supabase
-    .from(TABLE)
-    .select('*')
+// Admin listing. Optional `search` filters by name, description, or section
+// (case-insensitive). Ordered so items keep menu order.
+function findAll(search) {
+  let query = supabase.from(TABLE).select('*');
+
+  const term = (search || '').trim();
+  if (term) {
+    // Strip characters that would break PostgREST's or() filter grammar,
+    // then match the term anywhere in name / description / section.
+    const safe = term.replace(/[,()*]/g, ' ').trim();
+    if (safe) {
+      const pattern = `%${safe}%`;
+      query = query.or(
+        `name.ilike.${pattern},description.ilike.${pattern},section.ilike.${pattern}`,
+      );
+    }
+  }
+
+  return query
     .order('sort_order', { ascending: true })
     .order('created_at', { ascending: true });
 }

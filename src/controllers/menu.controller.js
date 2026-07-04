@@ -14,9 +14,9 @@ async function listPublic(request, reply) {
   return sendSuccess(reply, data);
 }
 
-// Admin endpoint — every item, including hidden ones.
+// Admin endpoint — every item, including hidden ones. Supports `?search=`.
 async function list(request, reply) {
-  const { data, error } = await menuService.findAll();
+  const { data, error } = await menuService.findAll(request.query?.search);
   if (error) return sendError(reply, error);
   return sendSuccess(reply, data);
 }
